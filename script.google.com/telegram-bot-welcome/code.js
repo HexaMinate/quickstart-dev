@@ -339,13 +339,27 @@ function doPost(e) {
                                                         "get_api": ""
                                                     };
                                                     var keyboard = apis("telegram", param);
-                                                    
-                                                    var option = {
-                                                        "chat_id": chat_id,
-                                                        "text": "Succes Add Keyboard",
-                                                        "parse_mode": "html"
-                                                    };
-                                                    return tg.request("sendMessage", option);
+                                                    if (keyboard && keyboard.status_bool) {
+                                                        var result = keyboard.result;
+                                                        var param = {
+                                                            "key": "group",
+                                                            "searchdata": {
+                                                                "chat": {
+                                                                    "id": chat_id
+                                                                }
+                                                            },
+                                                            "value": {
+                                                                "result": result
+                                                            }
+                                                        };
+                                                        var option = {
+                                                            "chat_id": chat_id,
+                                                            "text": "Succes Add Keyboard",
+                                                            "parse_mode": "html",
+                                                            "reply_markup": result
+                                                        };
+                                                        return tg.request("sendMessage", option);
+                                                    }
                                                 } else {
                                                     var option = {
                                                         "chat_id": chat_id,
