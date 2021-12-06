@@ -1,7 +1,8 @@
 var config_json = {
     "token": "paste_your_token_here",
     "username_bot": "",
-    "token_database": ""
+    "token_database": "",
+    "token_apis": "",
 };
 var lib = new telegramclient.telegram(config_json.token);
 var tg = lib.api;
@@ -38,7 +39,45 @@ function database(method, parameters = {}) {
     if (parameters) {
         options['payload'] = JSON.stringify(parameters);
     }
-    var url = "https://hexaminate.herokuapp.com/database/nosql/api/" + config_json.token_database;
+    var url = "https://hexaminate.herokuapp.com/database/nosql/api/" + config_json.token_database + "/" + method;
+    var response = UrlFetchApp.fetch(url, options);
+    if (response.getResponseCode() == 200) {
+        if (blob) {
+            return response.getBlob();
+        } else {
+            return JSON.parse(response.getContentText());
+        }
+    }
+    return false;
+
+}
+
+
+function apis(method, parameters = {}) {
+    if (!config_json.token_apis) {
+        throw {
+            "message": 'Bot Token is required'
+        };
+    } else {
+        if (String(config_json.token_apis).split(":").length == 0) {
+            throw {
+                message: `Format token salah tolong isi dengan benar ya`
+            };
+        }
+    }
+    if (!method) {
+        throw {
+            "message": 'Method is required'
+        };
+    }
+    var options = {
+        'method': 'post',
+        'contentType': 'application/json'
+    };
+    if (parameters) {
+        options['payload'] = JSON.stringify(parameters);
+    }
+    var url = "https://hexaminate.herokuapp.com/apis/" + config_json.token_apis + "/" + method;
     var response = UrlFetchApp.fetch(url, options);
     if (response.getResponseCode() == 200) {
         if (blob) {
@@ -210,7 +249,6 @@ function doPost(e) {
                                 if (loop_data.chat && loop_data.chat.id == chat_id && loop_data.state && loop_data.state.chat_id == chat_id && loop_data.state.user_id) {
                                     if (loop_data.state.state) {
                                         var getState = String(loop_data.state.state).toLocaleLowerCase();
-
                                         switch (getState) {
                                             case "add_welcome":
                                                 var supportMessage = false;
@@ -295,11 +333,40 @@ function doPost(e) {
                                                     };
                                                     return tg.request("sendMessage", option);
                                                 }
-                                            case "":
-
-
+                                            case "add_keyboard":
+                                                if (text) {
+                                                    var param = {
+                                                        "get_api": ""
+                                                    };
+                                                    var keyboard = apis("telegram", param);
+                                                    
+                                                    var option = {
+                                                        "chat_id": chat_id,
+                                                        "text": "Succes Add Keyboard",
+                                                        "parse_mode": "html"
+                                                    };
+                                                    return tg.request("sendMessage", option);
+                                                } else {
+                                                    var option = {
+                                                        "chat_id": chat_id,
+                                                        "text": "Tolong kirim pesan text ya",
+                                                        "parse_mode": "html"
+                                                    };
+                                                    return tg.request("sendMessage", option);
+                                                }
                                             default:
-                                                return;
+                                                var param = {
+                                                    "key": "group",
+                                                    "searchdata": {
+                                                        "chat": {
+                                                            "id": chat_id
+                                                        }
+                                                    },
+                                                    "value": {
+                                                        "state": false
+                                                    }
+                                                };
+                                                return database("updateValue", param);
                                         }
 
                                     } else {
