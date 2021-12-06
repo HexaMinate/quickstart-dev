@@ -112,7 +112,7 @@ function doPost(e) {
                                     var getValue = database("getValue", {
                                         "key": "group"
                                     });
-                                    var foundValue = false
+                                    var foundValue = false;
                                     for (var index = 0; index < getValue.length; index++) {
                                         var loop_data = getValue[index];
                                         if (loop_data.chat && loop_data.chat.id == chat_id) {
@@ -124,7 +124,8 @@ function doPost(e) {
                                             "key": "group",
                                             "value": {
                                                 "chat": msg.chat,
-                                                "welcome": false
+                                                "welcome": false,
+                                                "state": false
                                             }
                                         });
                                     }
@@ -186,11 +187,143 @@ function doPost(e) {
                                                 "welcome": false
                                             }
                                         });
+                                        var option = {
+                                            "chat_id": chat_id,
+                                            "text": "Terjadi kesalahan saat mengirim pesan\nKini pesan welcome sudah di hapus.......",
+                                            "parse_mode": "html"
+                                        };
+                                        return tg.request("sendMessage", option);
                                     }
                                 }
                             }
                         }
+                        try {
+                            var getValue = database("getValue", {
+                                "key": "group"
+                            });
+                        } catch (e) {
+                            var getValue = false;
+                        }
+                        if (getValue) {
+                            for (var index = 0; index < getValue.length; index++) {
+                                var loop_data = getValue[index];
+                                if (loop_data.chat && loop_data.chat.id == chat_id && loop_data.state && loop_data.state.chat_id == chat_id && loop_data.state.user_id) {
+                                    if (loop_data.state.state) {
+                                        var getState = String(loop_data.state.state).toLocaleLowerCase();
 
+                                        switch (getState) {
+                                            case "add_welcome":
+                                                var supportMessage = false;
+                                                var json = {};
+                                                if (text) {
+                                                    supportMessage = true;
+                                                    json.type = "message";
+                                                    json.content = text;
+                                                }
+                                                if (msg.photo) {
+                                                    supportMessage = true;
+                                                    json.type = "photo";
+                                                    json.content = caption;
+                                                    json.file_id = msg.photo[msg.photo.length - 1].file_id;
+                                                }
+                                                if (msg.audio) {
+                                                    supportMessage = true;
+                                                    var type = "audio";
+                                                    json.type = type;
+                                                    json.file_id = msg[type].file_id;
+                                                }
+                                                if (msg.document) {
+                                                    supportMessage = true;
+                                                    var type = "document";
+                                                    json.type = type;
+                                                    json.file_id = msg[type].file_id;
+                                                }
+                                                if (msg.video) {
+                                                    supportMessage = true;
+                                                    var type = "video";
+                                                    json.type = type;
+                                                    json.file_id = msg[type].file_id;
+                                                }
+                                                if (msg.voice) {
+                                                    supportMessage = true;
+                                                    var type = "voice";
+                                                    json.type = type;
+                                                    json.file_id = msg[type].file_id;
+                                                }
+                                                if (msg.animation) {
+                                                    supportMessage = true;
+                                                    var type = "animation";
+                                                    json.type = type;
+                                                    json.file_id = msg[type].file_id;
+                                                }
+                                                if (msg.video_note) {
+                                                    supportMessage = true;
+                                                    var type = "video_note";
+                                                    json.type = type;
+                                                    json.file_id = msg[type].file_id;
+                                                }
+                                                if (supportMessage) {
+                                                    if (json) {
+                                                        database("updateValue", {
+                                                            "key": "group",
+                                                            "searchdata": {
+                                                                "chat": {
+                                                                    "id": chat_id
+                                                                }
+                                                            },
+                                                            "value": json
+                                                        });
+                                                        var option = {
+                                                            "chat_id": chat_id,
+                                                            "text": "Succes Add Welcome",
+                                                            "parse_mode": "html"
+                                                        };
+                                                        return tg.request("sendMessage", option);
+                                                    } else {
+                                                        var option = {
+                                                            "chat_id": chat_id,
+                                                            "text": "Oops terjadi kesalahan tolong ulangin lagi ya",
+                                                            "parse_mode": "html"
+                                                        };
+                                                        return tg.request("sendMessage", option);
+                                                    }
+                                                } else {
+                                                    var option = {
+                                                        "chat_id": chat_id,
+                                                        "text": "Hanya support send text dan berupa media biasa ya!",
+                                                        "parse_mode": "html"
+                                                    };
+                                                    return tg.request("sendMessage", option);
+                                                }
+                                            case "":
+
+
+                                            default:
+                                                return;
+                                        }
+
+                                    } else {
+                                        database("updateValue", {
+                                            "key": "group",
+                                            "searchdata": {
+                                                "chat": {
+                                                    "id": chat_id
+                                                }
+                                            },
+                                            "value": {
+                                                "state": false
+                                            }
+                                        });
+                                        var option = {
+                                            "chat_id": chat_id,
+                                            "text": "Terjadi kesalahan pada state tolong ulangin lagi dari awal yah",
+                                            "parse_mode": "html"
+                                        };
+                                        return tg.request("sendMessage", option);
+                                    }
+                                }
+                            }
+                        }
                     } catch (e) {
                         var option = {
                             "chat_id": chat_id,
@@ -236,20 +369,22 @@ function sendMessage(tg, update, getData) {
                     message += String(getData.content).replace(/({name})/ig, fromFname).replace(/({username})/ig, fromUsername).replace(/({chat_title})/ig, chat_title);
                 }
 
-                if (RegExp("^message|photo|video$", "i").exec(getData.type)) {
+                if (RegExp("^(message|photo|video|audio|document|voice|videonote|animation)$", "i").exec(getData.type)) {
                     var option = {
                         "chat_id": chat_id,
                         "allow_sending_without_reply": true,
                         "reply_to_message_id": msg_id,
                         "parse_mode": "html"
                     };
-                    option[String(getData.type).toLocaleLowerCase()] = getData.type;
                     if (RegExp("^message$", "i").exec(getData.type)) {
                         option["text"] = message ?? "Hello new member";
                     } else {
+                        option[String(getData.type).toLocaleLowerCase()] = getData.file_id;
                         option["caption"] = message ?? "";
                     }
                     return tg.request("send" + getData.type, option);
+                } else {
+                    return false;
                 }
             } else {
                 return false;
