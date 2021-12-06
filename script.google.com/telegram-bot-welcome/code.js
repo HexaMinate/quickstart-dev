@@ -334,13 +334,14 @@ function doPost(e) {
                                                     return tg.request("sendMessage", option);
                                                 }
                                             case "add_keyboard":
-                                                if (text) {
+                                                if (text && /\((?<text>[^\)]+) - (?<url>[^\s+]+)\)(?<same>(?:\:same)?)/gmi.exec(text)) {
                                                     var param = {
-                                                        "get_api": ""
+                                                        "id_api": "text_to_keyboard",
+                                                        "text": text
                                                     };
                                                     var keyboard = apis("telegram", param);
-                                                    if (keyboard && keyboard.status_bool) {
-                                                        var result = keyboard.result;
+                                                    if (keyboard && keyboard.status_bool && keyboard.result && keyboard.result.reply_markup) {
+                                                        var keyboard = keyboard.result.keyboard;
                                                         var param = {
                                                             "key": "group",
                                                             "searchdata": {
@@ -349,7 +350,7 @@ function doPost(e) {
                                                                 }
                                                             },
                                                             "value": {
-                                                                "result": result
+                                                                "keyboard": keyboard
                                                             }
                                                         };
                                                         var option = {
@@ -462,6 +463,9 @@ function sendMessage(tg, update, getData) {
                     } else {
                         option[String(getData.type).toLocaleLowerCase()] = getData.file_id;
                         option["caption"] = message ?? "";
+                    }
+                    if (getData.keyboard) {
+                        option["reply_markup"] = getData.keyboard;
                     }
                     return tg.request("send" + getData.type, option);
                 } else {
