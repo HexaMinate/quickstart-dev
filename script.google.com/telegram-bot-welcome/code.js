@@ -14,19 +14,19 @@
 
 
 var config_json = {
-    "token": "paste_your_token_here",
-    "username_bot": "username",
-    "token_database": "get_it_on_https://hexaminate.herokuapp.com",
-    "token_apis": "",
+    "token": "5040625105:AAGaFbK9pd7Xp9MHQJa63g11hW01qEfbfRo",
+    "username_bot": "hexawelcomebot",
+    "token_database": "47:0486e1b3-b8ff-4cbd-9f27-947ad224ced2",
+    "token_apis": "47:0486e1b3-b8ff-4cbd-9f27-947ad224ced2",
 };
 var lib = new telegramclient.telegram(config_json.token);
 var tg = lib.api;
 function setWebhook() {
-    var url = "";
+    var url = "https://script.google.com/macros/s/AKfycbz_RXl54GDMQKvQMD_vd00wg8UURKwhTCvgI9iEAeLpt8eM1pTy/exec";
     var option = {
         "url": url
     };
-    var data = lib.newBot(token).api.request("setWebhook", option);
+    var data = tg.request("setWebhook", option);
     console.log(data);
 }
 
@@ -57,11 +57,9 @@ function database(method, parameters = {}) {
     var url = "https://hexaminate.herokuapp.com/database/nosql/api/" + config_json.token_database + "/" + method;
     var response = UrlFetchApp.fetch(url, options);
     if (response.getResponseCode() == 200) {
-        if (blob) {
-            return response.getBlob();
-        } else {
-            return JSON.parse(response.getContentText());
-        }
+
+        return JSON.parse(response.getContentText());
+
     }
     return false;
 
@@ -95,11 +93,7 @@ function apis(method, parameters = {}) {
     var url = "https://hexaminate.herokuapp.com/apis/" + config_json.token_apis + "/" + method;
     var response = UrlFetchApp.fetch(url, options);
     if (response.getResponseCode() == 200) {
-        if (blob) {
-            return response.getBlob();
-        } else {
-            return JSON.parse(response.getContentText());
-        }
+        return JSON.parse(response.getContentText());
     }
     return false;
 
@@ -254,42 +248,49 @@ function doPost(e) {
                         if (RegExp("^watch_welcome$", "i").exec(text)) {
                             paramsEdit["text"] = "Please wait Fetching Database...";
                             tg.request("editMessageText", paramsEdit);
-                            var getValue = database("getValue", {
-                                "key": "group"
-                            });
-                            for (var index = 0; index < getValue.length; index++) {
-                                var loop_data = getValue[index];
-                                if (loop_data.chat && loop_data.chat.id == chat_id && loop_data.welcome) {
-                                    try {
-                                        tg.request("deleteMessage", { chat_id: chat_id, message_id: msg_id });
-                                    } catch (e) {
+                            try {
+                                var getValueApi = database("getValue", {
+                                    "key": "group"
+                                });
+                            } catch (e) {
+                                var getValueApi = false;
+                            }
+                            if (getValueApi && getValueApi.status_bool && getValueApi.result) {
+                                var getValue = getValueApi.result.content;
+                                for (var index = 0; index < getValue.length; index++) {
+                                    var loop_data = getValue[index];
+                                    if (loop_data.chat && loop_data.chat.id == chat_id && loop_data.welcome) {
+                                        try {
+                                            tg.request("deleteMessage", { chat_id: chat_id, message_id: msg_id });
+                                        } catch (e) {
 
-                                    }
-                                    try {
-                                        return sendMessage(tg, cbm, loop_data.welcome);
-                                    } catch (e) {
-                                        database("updateValue", {
-                                            "key": "group",
-                                            "searchdata": {
-                                                "chat": {
-                                                    "id": chat_id
+                                        }
+                                        try {
+                                            return sendMessage(tg, cbm, loop_data.welcome);
+                                        } catch (e) {
+                                            database("updateValue", {
+                                                "key": "group",
+                                                "searchdata": {
+                                                    "chat": {
+                                                        "id": chat_id
+                                                    }
+                                                },
+                                                "value": {
+                                                    "welcome": false
                                                 }
-                                            },
-                                            "value": {
-                                                "welcome": false
-                                            }
-                                        });
-                                        var option = {
-                                            "chat_id": chat_id,
-                                            "text": "Terjadi kesalahan saat mengirim pesan\nKini pesan welcome sudah di hapus.......",
-                                            "parse_mode": "html"
-                                        };
-                                        return tg.request("sendMessage", option);
+                                            });
+                                            var option = {
+                                                "chat_id": chat_id,
+                                                "text": "Terjadi kesalahan saat mengirim pesan\nKini pesan welcome sudah di hapus.......",
+                                                "parse_mode": "html"
+                                            };
+                                            return tg.request("sendMessage", option);
+                                        }
                                     }
                                 }
+                                paramsEdit["text"] = "Failed Because no data in database";
+                                return tg.request("editMessageText", paramsEdit);
                             }
-                            paramsEdit["text"] = "Failed Because no data in database";
-                            return tg.request("editMessageText", paramsEdit);
                         }
                     } catch (e) {
                         try {
@@ -328,6 +329,15 @@ function doPost(e) {
                     try {
                         if (text) {
 
+                            if (RegExp("ping", "gmi").exec(text)) {
+                                var option = {
+                                    "chat_id": chat_id,
+                                    "text": "Pong",
+                                    "parse_mode": "html"
+                                };
+                                return tg.request("sendMessage", option);
+
+                            }
                             /// start script
                             if (RegExp("^/start$", "i").exec(text)) {
                                 if (chat_type == "private") {
@@ -348,105 +358,120 @@ function doPost(e) {
                                     };
                                     return tg.request("sendMessage", option);
                                 } else {
-                                    var getValue = database("getValue", {
-                                        "key": "group"
-                                    });
-                                    var foundValue = false;
-                                    for (var index = 0; index < getValue.length; index++) {
-                                        var loop_data = getValue[index];
-                                        if (loop_data.chat && loop_data.chat.id == chat_id) {
-                                            foundValue = true;
-                                        }
-                                    }
-                                    if (!foundValue) {
-                                        database("pushValue", {
-                                            "key": "group",
-                                            "value": {
-                                                "chat": msg.chat,
-                                                "welcome": false,
-                                                "state": false
-                                            }
+                                    try {
+                                        var getValueApi = database("getValue", {
+                                            "key": "group"
                                         });
+                                    } catch (e) {
+                                        var getValueApi = false;
                                     }
-                                    var option = {
-                                        "chat_id": chat_id,
-                                        "text": "Hello there my name is bot",
-                                        "parse_mode": "html",
-                                        "reply_markup": {
-                                            "inline_keyboard": [
-                                                [
-                                                    {
-                                                        "text": "Add Welcome",
-                                                        "callback_data": "add_welcome"
-                                                    },
-                                                    {
-                                                        "text": "Lihat Welcome",
-                                                        "callback_data": "watch_welcome"
-                                                    }
-                                                ],
-                                                [
-                                                    {
-                                                        "text": "Delete Welcome",
-                                                        "callback_data": "delete_welcome"
-                                                    }
-                                                ],
-                                                [
-                                                    {
-                                                        "text": "ADD Keyboard",
-                                                        "callback_data": "add_keyboard"
-                                                    }
-                                                ]
-                                            ]
+                                    if (getValueApi && getValueApi.status_bool && getValueApi.result) {
+                                        var getValue = getValueApi.result.content;
+                                        var foundValue = false;
+                                        for (var index = 0; index < getValue.length; index++) {
+                                            var loop_data = getValue[index];
+                                            if (loop_data.chat && loop_data.chat.id == chat_id) {
+                                                foundValue = true;
+                                            }
                                         }
-                                    };
-                                    return tg.request("sendMessage", option);
+                                        if (!foundValue) {
+                                            database("pushValue", {
+                                                "key": "group",
+                                                "value": {
+                                                    "chat": msg.chat,
+                                                    "welcome": false,
+                                                    "state": false
+                                                }
+                                            });
+                                        }
+                                        var option = {
+                                            "chat_id": chat_id,
+                                            "text": "Hello there my name is bot",
+                                            "parse_mode": "html",
+                                            "reply_markup": {
+                                                "inline_keyboard": [
+                                                    [
+                                                        {
+                                                            "text": "Add Welcome",
+                                                            "callback_data": "add_welcome"
+                                                        },
+                                                        {
+                                                            "text": "Lihat Welcome",
+                                                            "callback_data": "watch_welcome"
+                                                        }
+                                                    ],
+                                                    [
+                                                        {
+                                                            "text": "Delete Welcome",
+                                                            "callback_data": "delete_welcome"
+                                                        }
+                                                    ],
+                                                    [
+                                                        {
+                                                            "text": "ADD Keyboard",
+                                                            "callback_data": "add_keyboard"
+                                                        }
+                                                    ]
+                                                ]
+                                            }
+                                        };
+                                        return tg.request("sendMessage", option);
+                                    }
                                 }
                             }
 
                         }
 
                         if (msg.new_chat_members) {
-                            var getValue = database("getValue", {
-                                "key": "group"
-                            });
-                            for (var index = 0; index < getValue.length; index++) {
-                                var loop_data = getValue[index];
-                                if (loop_data.chat && loop_data.chat.id == chat_id && loop_data.welcome) {
-                                    try {
-                                        return sendMessage(tg, update, loop_data.welcome);
-                                    } catch (e) {
-                                        database("updateValue", {
-                                            "key": "group",
-                                            "searchdata": {
-                                                "chat": {
-                                                    "id": chat_id
+                            try {
+                                var getValueApi = database("getValue", {
+                                    "key": "group"
+                                });
+                            } catch (e) {
+                                var getValueApi = false;
+                            }
+                            if (getValueApi && getValueApi.status_bool && getValueApi.result) {
+                                var getValue = getValueApi.result.content;
+                                for (var index = 0; index < getValue.length; index++) {
+                                    var loop_data = getValue[index];
+                                    if (loop_data.chat && loop_data.chat.id == chat_id && loop_data.welcome) {
+                                        try {
+                                            return sendMessage(tg, update, loop_data.welcome);
+                                        } catch (e) {
+                                            database("updateValue", {
+                                                "key": "group",
+                                                "searchdata": {
+                                                    "chat": {
+                                                        "id": chat_id
+                                                    }
+                                                },
+                                                "value": {
+                                                    "welcome": false
                                                 }
-                                            },
-                                            "value": {
-                                                "welcome": false
-                                            }
-                                        });
-                                        var option = {
-                                            "chat_id": chat_id,
-                                            "text": "Terjadi kesalahan saat mengirim pesan\nKini pesan welcome sudah di hapus.......",
-                                            "parse_mode": "html"
-                                        };
-                                        return tg.request("sendMessage", option);
+                                            });
+                                            var option = {
+                                                "chat_id": chat_id,
+                                                "text": "Terjadi kesalahan saat mengirim pesan\nKini pesan welcome sudah di hapus.......",
+                                                "parse_mode": "html"
+                                            };
+                                            return tg.request("sendMessage", option);
+                                        }
                                     }
                                 }
                             }
                         }
                         try {
-                            var getValue = database("getValue", {
+                            var getValueApi = database("getValue", {
                                 "key": "group"
                             });
                         } catch (e) {
-                            var getValue = false;
+                            var getValueApi = false;
                         }
-                        if (getValue) {
+                        if (getValueApi && getValueApi.status_bool && getValueApi.result) {
+                            var getValue = getValueApi.result.content;
                             for (var index = 0; index < getValue.length; index++) {
                                 var loop_data = getValue[index];
-                                if (loop_data.chat && loop_data.chat.id == chat_id && loop_data.state && loop_data.state.chat_id == chat_id && loop_data.state.user_id) {
+                                if (loop_data.state && loop_data.state.chat_id == chat_id && loop_data.state.user_id == user_id) {
                                     if (loop_data.state.state) {
                                         var getState = String(loop_data.state.state).toLocaleLowerCase();
                                         switch (getState) {
@@ -516,7 +541,10 @@ function doPost(e) {
                                                                     "id": chat_id
                                                                 }
                                                             },
-                                                            "value": json
+                                                            "value": {
+                                                                "state": false,
+                                                                "welcome": json
+                                                            }
                                                         });
                                                         var option = {
                                                             "chat_id": chat_id,
@@ -555,8 +583,8 @@ function doPost(e) {
                                                     };
                                                     var keyboard = apis("telegram", param);
                                                     if (keyboard && keyboard.status_bool && keyboard.result && keyboard.result.reply_markup) {
-                                                        var keyboard = keyboard.result.keyboard;
-                                                        var param = {
+                                                        var keyboards = keyboard.result.reply_markup;
+                                                        database("updateValue", {
                                                             "key": "group",
                                                             "searchdata": {
                                                                 "chat": {
@@ -564,16 +592,24 @@ function doPost(e) {
                                                                 }
                                                             },
                                                             "value": {
-                                                                "keyboard": keyboard
+                                                                "keyboard": keyboards
                                                             }
-                                                        };
+                                                        });
                                                         var option = {
                                                             "chat_id": chat_id,
                                                             "text": "Succes Add Keyboard",
                                                             "parse_mode": "html",
-                                                            "reply_markup": result
+                                                            "reply_markup": keyboards
                                                         };
                                                         return tg.request("sendMessage", option);
+                                                    } else {
+                                                    
+                                                    var option = {
+                                                        "chat_id": chat_id,
+                                                        "text": JSON.stringify(keyboard, null,2),
+                                                        "parse_mode": "html"
+                                                    };
+                                                    return tg.request("sendMessage", option);
                                                     }
                                                 } else {
                                                     var option = {
