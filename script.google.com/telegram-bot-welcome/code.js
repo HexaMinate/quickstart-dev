@@ -19,10 +19,9 @@ var config_json = {
     "token_database": "token_database",
     "token_apis": "token_api",
 };
-
 var lib = new telegramclient.telegram(config_json.token);
-
 var tg = lib.api;
+
 function setWebhook() {
     var url = "https://script.google.com/macros/s/AKfycbz_RXl54GDMQKvQMD_vd00wg8UURKwhTCvgI9iEAeLpt8eM1pTy/exec";
     var option = {
@@ -59,12 +58,9 @@ function database(method, parameters = {}) {
     var url = "https://hexaminate.herokuapp.com/database/nosql/api/" + config_json.token_database + "/" + method;
     var response = UrlFetchApp.fetch(url, options);
     if (response.getResponseCode() == 200) {
-
         return JSON.parse(response.getContentText());
-
     }
     return false;
-
 }
 
 
@@ -98,12 +94,10 @@ function apis(method, parameters = {}) {
         return JSON.parse(response.getContentText());
     }
     return false;
-
 }
 
 function setDatabaseTelegram() {
-    var data = database("setValue", { "key": "group", "value": [] });
-    console.log(data);
+    console.log(database("setValue", { "key": "group", "value": [] }));
 }
 
 function checkAdmin(tg, chat_id, user_id) {
@@ -124,11 +118,8 @@ function checkAdmin(tg, chat_id, user_id) {
 
 function doPost(e) {
     try {
-
         if (e.postData.type == "application/json") {
-
             var update = JSON.parse(e.postData.contents);
-
             if (update) {
 
                 if (update.callback_query) {
@@ -161,7 +152,6 @@ function doPost(e) {
                             };
                             return tg.request("answerCallbackQuery", option);
                         }
-
 
                         var paramsEdit = {
                             "chat_id": chat_id,
@@ -215,6 +205,7 @@ function doPost(e) {
                             };
                             return tg.request("editMessageText", paramsEdit);
                         }
+
                         if (RegExp("^add_welcome$", "i").exec(text)) {
                             database("updateValue", {
                                 "key": "group",
@@ -245,6 +236,7 @@ function doPost(e) {
                             };
                             return tg.request("editMessageText", paramsEdit);
                         }
+
                         if (RegExp("^delete_welcome$", "i").exec(text)) {
                             database("updateValue", {
                                 "key": "group",
@@ -312,7 +304,6 @@ function doPost(e) {
                         try {
                             tg.request("deleteMessage", { chat_id: chat_id, message_id: msg_id });
                         } catch (e) {
-
                         }
                         var option = {
                             "chat_id": chat_id,
@@ -343,8 +334,8 @@ function doPost(e) {
                     var key = { chat: { id: chat_id } };
 
                     try {
-                        if (text) {
 
+                        if (text) {
                             if (RegExp("ping", "gmi").exec(text)) {
                                 var option = {
                                     "chat_id": chat_id,
@@ -352,9 +343,8 @@ function doPost(e) {
                                     "parse_mode": "html"
                                 };
                                 return tg.request("sendMessage", option);
-
                             }
-                            /// start script
+                            
                             if (RegExp("^/start$", "i").exec(text)) {
                                 if (chat_type == "private") {
                                     var option = {
@@ -689,9 +679,7 @@ function doPost(e) {
 }
 
 function sendMessage(tg, update, getData) {
-
     if (update && getData) {
-
         if (update.message) {
             var msg = update.message;
             var msgr = msg.reply_to_message ?? false;
@@ -711,13 +699,11 @@ function sendMessage(tg, update, getData) {
             var fromLanguagecode = msg.from.language_code ?? "id";
             var mentionFromMarkdown = "[" + fromFullName + "](tg://user?id=" + user_id + ")";
             var key = { chat: { id: chat_id } };
-
             if (getData.welcome.type) {
                 var message = "";
                 if (getData.welcome.content) {
                     message += String(getData.welcome.content).replace(/({name})/ig, fromFname).replace(/({username})/ig, fromUsername).replace(/({chat_title})/ig, chat_title);
                 }
-
                 if (RegExp("^(message|photo|video|audio|document|voice|videonote|animation)$", "i").exec(getData.welcome.type)) {
                     var option = {
                         "chat_id": chat_id,
