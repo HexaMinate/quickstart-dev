@@ -11,15 +11,17 @@
 *
 **/
 
-
+// configuration global
 
 var config_json = {
-    "token": "5040625105:AAGaFbK9pd7Xp9MHQJa63g11hW01qEfbfRo",
+    "token": "token_bot",
     "username_bot": "hexawelcomebot",
-    "token_database": "47:0486e1b3-b8ff-4cbd-9f27-947ad224ced2",
-    "token_apis": "47:0486e1b3-b8ff-4cbd-9f27-947ad224ced2",
+    "token_database": "token_database",
+    "token_apis": "token_api",
 };
+
 var lib = new telegramclient.telegram(config_json.token);
+
 var tg = lib.api;
 function setWebhook() {
     var url = "https://script.google.com/macros/s/AKfycbz_RXl54GDMQKvQMD_vd00wg8UURKwhTCvgI9iEAeLpt8eM1pTy/exec";
@@ -213,8 +215,7 @@ function doPost(e) {
                             };
                             return tg.request("editMessageText", paramsEdit);
                         }
-
-                        if (RegExp("^add_keyboard$", "i").exec(text)) {
+                        if (RegExp("^add_welcome$", "i").exec(text)) {
                             database("updateValue", {
                                 "key": "group",
                                 "searchdata": {
@@ -231,7 +232,7 @@ function doPost(e) {
                                     }
                                 }
                             });
-                            paramsEdit["text"] = "Silahkan kirim pesan text! berikut contoh format\n<code>(Button - https://t.me/azkadev)\n(Channel - https://t.me/azkadev)(Group - https://t.me/azkadev):same\n(Github - https://github.com/azkadev)</code>";
+                            paramsEdit["text"] = "Silahkan kirim pesan anda disini\n\nExtra Variable\n<code>{name}</code>\n<code>{username}</code>\n{chat_title}";
                             paramsEdit["reply_markup"] = {
                                 "inline_keyboard": [
                                     [
@@ -242,6 +243,21 @@ function doPost(e) {
                                     ]
                                 ]
                             };
+                            return tg.request("editMessageText", paramsEdit);
+                        }
+                        if (RegExp("^delete_welcome$", "i").exec(text)) {
+                            database("updateValue", {
+                                "key": "group",
+                                "searchdata": {
+                                    "chat": {
+                                        "id": chat_id
+                                    }
+                                },
+                                "value": {
+                                    "welcome": false
+                                }
+                            });
+                            paramsEdit["text"] = "Succes Delete Welcome";
                             return tg.request("editMessageText", paramsEdit);
                         }
 
@@ -266,7 +282,7 @@ function doPost(e) {
 
                                         }
                                         try {
-                                            return sendMessage(tg, cbm, loop_data.welcome);
+                                            return sendMessage(tg, cb, loop_data);
                                         } catch (e) {
                                             database("updateValue", {
                                                 "key": "group",
@@ -436,7 +452,7 @@ function doPost(e) {
                                     var loop_data = getValue[index];
                                     if (loop_data.chat && loop_data.chat.id == chat_id && loop_data.welcome) {
                                         try {
-                                            return sendMessage(tg, update, loop_data.welcome);
+                                            return sendMessage(tg, update, loop_data);
                                         } catch (e) {
                                             database("updateValue", {
                                                 "key": "group",
@@ -592,6 +608,7 @@ function doPost(e) {
                                                                 }
                                                             },
                                                             "value": {
+                                                                "state": false,
                                                                 "keyboard": keyboards
                                                             }
                                                         });
@@ -603,13 +620,13 @@ function doPost(e) {
                                                         };
                                                         return tg.request("sendMessage", option);
                                                     } else {
-                                                    
-                                                    var option = {
-                                                        "chat_id": chat_id,
-                                                        "text": JSON.stringify(keyboard, null,2),
-                                                        "parse_mode": "html"
-                                                    };
-                                                    return tg.request("sendMessage", option);
+
+                                                        var option = {
+                                                            "chat_id": chat_id,
+                                                            "text": JSON.stringify(keyboard, null, 2),
+                                                            "parse_mode": "html"
+                                                        };
+                                                        return tg.request("sendMessage", option);
                                                     }
                                                 } else {
                                                     var option = {
@@ -695,29 +712,29 @@ function sendMessage(tg, update, getData) {
             var mentionFromMarkdown = "[" + fromFullName + "](tg://user?id=" + user_id + ")";
             var key = { chat: { id: chat_id } };
 
-            if (getData.type) {
+            if (getData.welcome.type) {
                 var message = "";
-                if (getData.content) {
-                    message += String(getData.content).replace(/({name})/ig, fromFname).replace(/({username})/ig, fromUsername).replace(/({chat_title})/ig, chat_title);
+                if (getData.welcome.content) {
+                    message += String(getData.welcome.content).replace(/({name})/ig, fromFname).replace(/({username})/ig, fromUsername).replace(/({chat_title})/ig, chat_title);
                 }
 
-                if (RegExp("^(message|photo|video|audio|document|voice|videonote|animation)$", "i").exec(getData.type)) {
+                if (RegExp("^(message|photo|video|audio|document|voice|videonote|animation)$", "i").exec(getData.welcome.type)) {
                     var option = {
                         "chat_id": chat_id,
                         "allow_sending_without_reply": true,
                         "reply_to_message_id": msg_id,
                         "parse_mode": "html"
                     };
-                    if (RegExp("^message$", "i").exec(getData.type)) {
+                    if (RegExp("^message$", "i").exec(getData.welcome.type)) {
                         option["text"] = message ?? "Hello new member";
                     } else {
-                        option[String(getData.type).toLocaleLowerCase()] = getData.file_id;
+                        option[String(getData.welcome.type).toLocaleLowerCase()] = getData.welcome.file_id;
                         option["caption"] = message ?? "";
                     }
                     if (getData.keyboard) {
                         option["reply_markup"] = getData.keyboard;
                     }
-                    return tg.request("send" + getData.type, option);
+                    return tg.request("send" + getData.welcome.type, option);
                 } else {
                     return false;
                 }
