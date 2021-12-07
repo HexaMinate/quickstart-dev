@@ -95,6 +95,22 @@ function setDatabaseTelegram() {
     console.log(data);
 }
 
+function getChatMember(tg, chat_id, user_id) {
+    try {
+        var getChatAdministrators = tg.request("getChatAdministrators", { chat_id: chat_id });
+        var admins_array = getChatAdministrators.result;
+        var id_admins = [];
+        admins_array.map(res => id_admins.push(res.user.id));
+        if (id_admins.indexOf(user_id) > -1) {
+            return true;
+        } else {
+            return false;
+        }
+    } catch (e) {
+        return false;
+    }
+}
+
 function doPost(e) {
     try {
 
@@ -104,6 +120,175 @@ function doPost(e) {
 
             if (update) {
 
+                if (update.callback_query) {
+                    var cb = update.callback_query;
+                    var cbm = cb.message;
+                    var isText = cbm.text ?? "";
+                    var cbm_caption = cbm.caption ?? "";
+                    var user_id = cb.from.id;
+                    var chat_id = cbm.chat.id;
+                    var chat_type = String(cbm.chat.type).replace(RegExp("super", "i"), "");
+                    var chat_title = cbm.chat.title ?? "";
+                    var chat_username = (cbm.chat.username) ? `@${cbm.chat.username}` : "";
+                    var msg_id = cbm.message_id;
+                    var text = cb.data;
+                    var fromId = cb.from.id;
+                    var fromFname = cb.from.first_name;
+                    var fromLname = cb.from.last_name ?? "";
+                    var fromFullName = `${fromFname} ${fromLname}`;
+                    var fromUsername = (cb.from.username) ? `@${cb.from.username}` : "";
+                    var fromLanguagecode = cb.from.language_code ?? "id";
+                    var mentionFromMarkdown = `[${fromFullName}](tg://user?id=${user_id})`;
+                    var mentionFromHtml = `<a href='tg://user?id=${user_id}'>${fromFullName}</a>`;
+
+                    try {
+                        if (!getChatMember(tg, chat_id, user_id)) {
+                            var option = {
+                                "callback_query_id": cb.id,
+                                "text": `Oops hanya Admin Saja yang bisa akses`,
+                                "show_alert": true
+                            };
+                            return tg.request("answerCallbackQuery", option);
+                        }
+
+
+                        var paramsEdit = {
+                            "chat_id": chat_id,
+                            "message_id": msg_id,
+                            "parse_mode": "html"
+                        };
+
+                        if (RegExp("^cancel:.*$", "i").exec(text)) {
+                            database("updateValue", {
+                                "key": "group",
+                                "searchdata": {
+                                    "chat": {
+                                        "id": chat_id
+                                    }
+                                },
+                                "value": {
+                                    "state": false
+                                }
+                            });
+                            paramsEdit["text"] = "Operation " + String(text).replace(/(cancel\:|_)/ig, "") + "Succes Cancel";
+                            return tg.request("editMessageText", paramsEdit);
+                        }
+
+                        if (RegExp("^add_welcome$", "i").exec(text)) {
+                            database("updateValue", {
+                                "key": "group",
+                                "searchdata": {
+                                    "chat": {
+                                        "id": chat_id
+                                    }
+                                },
+                                "value": {
+                                    "state": {
+                                        "chat_id": chat_id,
+                                        "user_id": user_id,
+                                        "state": text,
+                                        "message_id": msg_id
+                                    }
+                                }
+                            });
+                            paramsEdit["text"] = "Silahkan kirim pesan anda disini\n\nExtra Variable\n<code>{name}</code>\n<code>{username}</code>\n{chat_title}";
+                            paramsEdit["reply_markup"] = {
+                                "inline_keyboard": [
+                                    [
+                                        {
+                                            "text": "Cancel",
+                                            "callback_data": "cancel:" + text
+                                        }
+                                    ]
+                                ]
+                            };
+                            return tg.request("editMessageText", paramsEdit);
+                        }
+
+                        if (RegExp("^add_keyboard$", "i").exec(text)) {
+                            database("updateValue", {
+                                "key": "group",
+                                "searchdata": {
+                                    "chat": {
+                                        "id": chat_id
+                                    }
+                                },
+                                "value": {
+                                    "state": {
+                                        "chat_id": chat_id,
+                                        "user_id": user_id,
+                                        "state": text,
+                                        "message_id": msg_id
+                                    }
+                                }
+                            });
+                            paramsEdit["text"] = "Silahkan kirim pesan text! berikut contoh format\n<code>(Button - https://t.me/azkadev)\n(Channel - https://t.me/azkadev)(Group - https://t.me/azkadev):same\n(Github - https://github.com/azkadev)</code>";
+                            paramsEdit["reply_markup"] = {
+                                "inline_keyboard": [
+                                    [
+                                        {
+                                            "text": "Cancel",
+                                            "callback_data": "cancel:" + text
+                                        }
+                                    ]
+                                ]
+                            };
+                            return tg.request("editMessageText", paramsEdit);
+                        }
+
+                        if (RegExp("^watch_welcome$", "i").exec(text)) {
+                            paramsEdit["text"] = "Please wait Fetching Database...";
+                            tg.request("editMessageText", paramsEdit);
+                            var getValue = database("getValue", {
+                                "key": "group"
+                            });
+                            for (var index = 0; index < getValue.length; index++) {
+                                var loop_data = getValue[index];
+                                if (loop_data.chat && loop_data.chat.id == chat_id && loop_data.welcome) {
+                                    try {
+                                        tg.request("deleteMessage", { chat_id: chat_id, message_id: msg_id });
+                                    } catch (e) {
+
+                                    }
+                                    try {
+                                        return sendMessage(tg, cbm, loop_data.welcome);
+                                    } catch (e) {
+                                        database("updateValue", {
+                                            "key": "group",
+                                            "searchdata": {
+                                                "chat": {
+                                                    "id": chat_id
+                                                }
+                                            },
+                                            "value": {
+                                                "welcome": false
+                                            }
+                                        });
+                                        var option = {
+                                            "chat_id": chat_id,
+                                            "text": "Terjadi kesalahan saat mengirim pesan\nKini pesan welcome sudah di hapus.......",
+                                            "parse_mode": "html"
+                                        };
+                                        return tg.request("sendMessage", option);
+                                    }
+                                }
+                            }
+                            paramsEdit["text"] = "Failed Because no data in database";
+                            return tg.request("editMessageText", paramsEdit);
+                        }
+                    } catch (e) {
+                        try {
+                            tg.request("deleteMessage", { chat_id: chat_id, message_id: msg_id });
+                        } catch (e) {
+
+                        }
+                        var option = {
+                            "chat_id": chat_id,
+                            "text": e.message
+                        };
+                        return tg.request("sendMessage", option);
+                    }
+                }
 
                 if (update.message) {
                     var msg = update.message;
@@ -251,6 +436,13 @@ function doPost(e) {
                                         var getState = String(loop_data.state.state).toLocaleLowerCase();
                                         switch (getState) {
                                             case "add_welcome":
+                                                if (loop_data.state.message_id) {
+                                                    try {
+                                                        tg.request("deleteMessage", { chat_id: chat_id, message_id: loop_data.state.message_id });
+                                                    } catch (e) {
+
+                                                    }
+                                                }
                                                 var supportMessage = false;
                                                 var json = {};
                                                 if (text) {
@@ -334,6 +526,13 @@ function doPost(e) {
                                                     return tg.request("sendMessage", option);
                                                 }
                                             case "add_keyboard":
+                                                if (loop_data.state.message_id) {
+                                                    try {
+                                                        tg.request("deleteMessage", { chat_id: chat_id, message_id: loop_data.state.message_id });
+                                                    } catch (e) {
+
+                                                    }
+                                                }
                                                 if (text && /\((?<text>[^\)]+) - (?<url>[^\s+]+)\)(?<same>(?:\:same)?)/gmi.exec(text)) {
                                                     var param = {
                                                         "id_api": "text_to_keyboard",
