@@ -1,7 +1,22 @@
+/*
+*   Quickstart Telegram bot Welcome with database hexaminate nosql
+*
+*   Library
+*   Telegram_client:    https://github.com/azkadev/telegram_client
+*
+*   Publisher & Maintaners:
+*   https://github.com/azkadev
+*   
+*
+*
+**/
+
+
+
 var config_json = {
     "token": "paste_your_token_here",
-    "username_bot": "",
-    "token_database": "",
+    "username_bot": "username",
+    "token_database": "get_it_on_https://hexaminate.herokuapp.com",
     "token_apis": "",
 };
 var lib = new telegramclient.telegram(config_json.token);
