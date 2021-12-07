@@ -422,6 +422,8 @@ function doPost(e) {
                                             }
                                         };
                                         return tg.request("sendMessage", option);
+                                    }   else   {
+                                        return tg.request("sendMessage", {"chat_id": chat_id, "text": "Api Sedang dalam ganggguan atau token kamu salah"});
                                     }
                                 }
                             }
