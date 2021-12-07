@@ -11,7 +11,7 @@
 *
 **/
 
-// configuration global
+// configuration global seting dlu ya tod
 
 var config_json = {
     "token": "token_bot",
@@ -23,7 +23,7 @@ var lib = new telegramclient.telegram(config_json.token);
 var tg = lib.api;
 
 function setWebhook() {
-    var url = "https://script.google.com/macros/s/AKfycbz_RXl54GDMQKvQMD_vd00wg8UURKwhTCvgI9iEAeLpt8eM1pTy/exec";
+    var url = "isi url script kamu ya tod";
     var option = {
         "url": url
     };
@@ -96,6 +96,7 @@ function apis(method, parameters = {}) {
     return false;
 }
 
+/// fungsi ini di jalankan dlu ya pastikin token udah keisi semua kalo gk kita tawuran
 function setDatabaseTelegram() {
     console.log(database("setValue", { "key": "group", "value": [] }));
 }
@@ -336,6 +337,7 @@ function doPost(e) {
                     try {
 
                         if (text) {
+
                             if (RegExp("ping", "gmi").exec(text)) {
                                 var option = {
                                     "chat_id": chat_id,
@@ -430,7 +432,9 @@ function doPost(e) {
 
                         }
 
+                        // check dlu ada member gknya
                         if (msg.new_chat_members) {
+                            // baru ambil data value
                             try {
                                 var getValueApi = database("getValue", {
                                     "key": "group"
@@ -438,11 +442,14 @@ function doPost(e) {
                             } catch (e) {
                                 var getValueApi = false;
                             }
+                            // check lagi apinya masih on gk
                             if (getValueApi && getValueApi.status_bool && getValueApi.result) {
                                 var getValue = getValueApi.result.content;
+                                // check lagi ada data group kamu gk di database
                                 for (var index = 0; index < getValue.length; index++) {
                                     var loop_data = getValue[index];
                                     if (loop_data.chat && loop_data.chat.id == chat_id && loop_data.welcome) {
+                                        // tambahin try catch jika error ntr database di reset biar rusaknya gk nambah beban server api
                                         try {
                                             return sendMessage(tg, update, loop_data);
                                         } catch (e) {
@@ -468,6 +475,8 @@ function doPost(e) {
                                 }
                             }
                         }
+
+                        // ambil data dlu dari server tambahin try catch biar kalo apinya botnya bisu
                         try {
                             var getValueApi = database("getValue", {
                                 "key": "group"
@@ -492,6 +501,7 @@ function doPost(e) {
                                                     }
                                                 }
                                                 var supportMessage = false;
+                                                // bikin object dlu biar lebih mudah kalo gk ngerti ya nganu dahlah
                                                 var json = {};
                                                 if (text) {
                                                     supportMessage = true;
@@ -680,6 +690,7 @@ function doPost(e) {
     }
 }
 
+// di buat function agar bisa di kembangkan lebih mudah dan agar bisa di gunakan di mana saja bukan welcome doang tapi tinggal kalian atur sendiri kali gk ngerti ya sudahlah itu urusan kalian
 function sendMessage(tg, update, getData) {
     if (update && getData) {
         if (update.message) {
@@ -701,11 +712,15 @@ function sendMessage(tg, update, getData) {
             var fromLanguagecode = msg.from.language_code ?? "id";
             var mentionFromMarkdown = "[" + fromFullName + "](tg://user?id=" + user_id + ")";
             var key = { chat: { id: chat_id } };
+            // cehck type welcome jika gk ada langsung return false;
             if (getData.welcome.type) {
                 var message = "";
+                // check caption ada gknya
                 if (getData.welcome.content) {
+                    // di replace dlu agar text {username} dll auto ganti ke nama member
                     message += String(getData.welcome.content).replace(/({name})/ig, fromFname).replace(/({username})/ig, fromUsername).replace(/({chat_title})/ig, chat_title);
                 }
+                // check type support jangan asal naruh ntr anu
                 if (RegExp("^(message|photo|video|audio|document|voice|videonote|animation)$", "i").exec(getData.welcome.type)) {
                     var option = {
                         "chat_id": chat_id,
@@ -719,6 +734,7 @@ function sendMessage(tg, update, getData) {
                         option[String(getData.welcome.type).toLocaleLowerCase()] = getData.welcome.file_id;
                         option["caption"] = message ?? "";
                     }
+                    // check keyboard kalo ada tambahin key reply markup
                     if (getData.keyboard) {
                         option["reply_markup"] = getData.keyboard;
                     }
