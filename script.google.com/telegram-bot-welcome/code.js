@@ -95,7 +95,7 @@ function setDatabaseTelegram() {
     console.log(data);
 }
 
-function getChatMember(tg, chat_id, user_id) {
+function checkAdmin(tg, chat_id, user_id) {
     try {
         var getChatAdministrators = tg.request("getChatAdministrators", { chat_id: chat_id });
         var admins_array = getChatAdministrators.result;
@@ -142,7 +142,7 @@ function doPost(e) {
                     var mentionFromHtml = `<a href='tg://user?id=${user_id}'>${fromFullName}</a>`;
 
                     try {
-                        if (!getChatMember(tg, chat_id, user_id)) {
+                        if (!checkAdmin(tg, chat_id, user_id)) {
                             var option = {
                                 "callback_query_id": cb.id,
                                 "text": `Oops hanya Admin Saja yang bisa akses`,
