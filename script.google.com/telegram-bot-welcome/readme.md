@@ -1,3 +1,3 @@
 # Telegram Bot Welcome
 
-![DEMO]()
+![](/demo-welcome-bot.mp4)

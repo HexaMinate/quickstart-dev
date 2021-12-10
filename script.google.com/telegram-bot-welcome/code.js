@@ -207,7 +207,7 @@ function doPost(e) {
                             return tg.request("editMessageText", paramsEdit);
                         }
 
-                        if (RegExp("^add_welcome$", "i").exec(text)) {
+                        if (RegExp("^add_keyboard$", "i").exec(text)) {
                             database("updateValue", {
                                 "key": "group",
                                 "searchdata": {
@@ -224,7 +224,7 @@ function doPost(e) {
                                     }
                                 }
                             });
-                            paramsEdit["text"] = "Silahkan kirim pesan anda disini\n\nExtra Variable\n<code>{name}</code>\n<code>{username}</code>\n{chat_title}";
+                            paramsEdit["text"] = "Silahkan Kirim pesan text format text\n\n(Nama Tomnbol - links atau cbdata)\nExample\n<code>(Github - https://github.com/azkadev)\n(Telegram - https://t.me/azkadev)(Owner - https://t.me/azkadev):same\n(Rules - rules)</code>";
                             paramsEdit["reply_markup"] = {
                                 "inline_keyboard": [
                                     [
@@ -473,6 +473,14 @@ function doPost(e) {
                                         }
                                     }
                                 }
+                            }   else    {
+
+                                var option = {
+                                    "chat_id": chat_id,
+                                    "text": "Terjadi kesalahan saat mengirim pesan\nKini pesan welcome sudah di hapus.......",
+                                    "parse_mode": "html"
+                                };
+                                return tg.request("sendMessage", option);
                             }
                         }
 
