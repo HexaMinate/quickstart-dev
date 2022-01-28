@@ -32,18 +32,18 @@ function setWebhook() {
 }
 
 function database(method, parameters = {}) {
-    if (!config_json.token_database) {
+    if (typeof config_json["token_database"] != "string") {
         throw {
             "message": 'Bot Token is required'
         };
     } else {
-        if (String(config_json.token_database).split(":").length == 0) {
+        if (String(config_json["token_database"]).split(":").length == 0) {
             throw {
                 message: `Format token salah tolong isi dengan benar ya`
             };
         }
     }
-    if (!method) {
+    if (typeof method != "string") {
         throw {
             "message": 'Method is required'
         };
@@ -52,15 +52,16 @@ function database(method, parameters = {}) {
         'method': 'post',
         'contentType': 'application/json'
     };
-    if (parameters) {
+    if (typeof parameters == "object") {
         options['payload'] = JSON.stringify(parameters);
     }
-    var url = "https://hexaminate.herokuapp.com/database/nosql/api/" + config_json.token_database + "/" + method;
+    var url = "https://hexaminate.herokuapp.com/database/nosql/api/" + config_json["token_database"] + "/" + method;
     var response = UrlFetchApp.fetch(url, options);
     if (response.getResponseCode() == 200) {
         return JSON.parse(response.getContentText());
+    } else {
+        return JSON.parse(response.getContentText());
     }
-    return false;
 }
 
 
@@ -103,10 +104,10 @@ function setDatabaseTelegram() {
 
 function checkAdmin(tg, chat_id, user_id) {
     try {
-        var getChatAdministrators = tg.request("getChatAdministrators", { chat_id: chat_id });
-        var admins_array = getChatAdministrators.result;
+        var getChatAdministrators = tg.request("getChatAdministrators", { "chat_id": chat_id });
+        var admins_array = getChatAdministrators["result"];
         var id_admins = [];
-        admins_array.map(res => id_admins.push(res.user.id));
+        admins_array.map(res => id_admins.push(res["user"]["id"]));
         if (id_admins.indexOf(user_id) > -1) {
             return true;
         } else {
@@ -119,35 +120,42 @@ function checkAdmin(tg, chat_id, user_id) {
 
 function doPost(e) {
     try {
-        if (e.postData.type == "application/json") {
-            var update = JSON.parse(e.postData.contents);
-            if (update) {
-
-                if (update.callback_query) {
-                    var cb = update.callback_query;
-                    var cbm = cb.message;
-                    var isText = cbm.text ?? "";
-                    var cbm_caption = cbm.caption ?? "";
-                    var user_id = cb.from.id;
-                    var chat_id = cbm.chat.id;
-                    var chat_type = String(cbm.chat.type).replace(RegExp("super", "i"), "");
-                    var chat_title = cbm.chat.title ?? "";
-                    var chat_username = (cbm.chat.username) ? `@${cbm.chat.username}` : "";
-                    var msg_id = cbm.message_id;
-                    var text = cb.data;
-                    var fromId = cb.from.id;
-                    var fromFname = cb.from.first_name;
-                    var fromLname = cb.from.last_name ?? "";
+        if (e["postData"]["type"] == "application/json") {
+            try {
+                var update = JSON.parse(e["postData"]["contents"]);
+            } catch (e) {
+                var update = false;
+            }
+            if (typeof update == "object") {
+                if (typeof update["callback_query"] == "object") {
+                    var cb = update["callback_query"];
+                    var cbm = cb["message"];
+                    var isText = cbm["text"] ?? "";
+                    var cbm_caption = cbm["caption"] ?? "";
+                    var user_id = cb["from"]["id"];
+                    var chat_id = cbm["chat"]["id"];
+                    var chat_type = String(cbm["chat"]["type"]).replace(RegExp("super", "i"), "");
+                    var chat_title = cbm["chat"]["title"] ?? "";
+                    var chat_username = (cbm["chat"]["username"]) ? `@${cbm["chat"]["username"]}` : "";
+                    var msg_id = cbm["message_id"];
+                    var text = cb["data"];
+                    var fromId = cb["from"]["id"];
+                    var fromFname = cb["from"]["first_name"];
+                    var fromLname = cb["from"]["last_name"] ?? "";
                     var fromFullName = `${fromFname} ${fromLname}`;
-                    var fromUsername = (cb.from.username) ? `@${cb.from.username}` : "";
-                    var fromLanguagecode = cb.from.language_code ?? "id";
+                    var fromUsername = (cb["from"]["username"]) ? `@${cb["from"]["username"]}` : "";
+                    var fromLanguagecode = cb["from"]["language_code"] ?? "id";
                     var mentionFromMarkdown = `[${fromFullName}](tg://user?id=${user_id})`;
                     var mentionFromHtml = `<a href='tg://user?id=${user_id}'>${fromFullName}</a>`;
+                    var sub_data = text.replace(/(.*:|=.*)/ig, "");
+                    var sub_id = text.replace(/(.*=|\-.*)/ig, "");
+                    var sub_sub_data = text.replace(/(.*\-)/ig, "");
+                    var key = { "chat": { "id": chat_id } };
 
                     try {
                         if (!checkAdmin(tg, chat_id, user_id)) {
                             var option = {
-                                "callback_query_id": cb.id,
+                                "callback_query_id": cb["id"],
                                 "text": `Oops hanya Admin Saja yang bisa akses`,
                                 "show_alert": true
                             };
@@ -314,25 +322,28 @@ function doPost(e) {
                     }
                 }
 
-                if (update.message) {
-                    var msg = update.message;
-                    var msgr = msg.reply_to_message ?? false;
-                    var user_id = msg.from.id;
-                    var chat_id = msg.chat.id;
-                    var chat_type = String(msg.chat.type).replace(RegExp("super", "i"), "");
-                    var chat_title = msg.chat.title ?? "";
-                    var chat_username = (msg.chat.username) ? `@${msg.chat.username}` : "";
-                    var msg_id = msg.message_id;
-                    var text = msg.text ?? "";
-                    var caption = msg.caption ?? "";
-                    var fromId = msg.from.id;
-                    var fromFname = msg.from.first_name;
-                    var fromLname = msg.from.last_name ?? "";
+                if (typeof update["message"] == "object") {
+                    var msg = update["message"];
+                    var messages = msg["text"] ?? msg["caption"] ?? "";
+                    var text = msg["text"] ?? "";
+                    var caption = msg["caption"] ?? "";
+                    var is_outgoing = msg["outgoing"] ?? false;
+                    var msgr = (typeof msg["reply_to_message"] == "object") ? msg["reply_to_message"] : false;
+                    var user_id = msg["from"]["id"];
+                    var chat_id = msg["chat"]["id"];
+                    var chat_type = String(msg["chat"]["type"]).replace(RegExp("super", "i"), "");
+                    var chat_title = msg["chat"]["title"] ?? "";
+                    var chat_username = (msg["chat"]["username"]) ? `@${msg["chat"]["username"]}` : "";
+                    var msg_id = msg["message_id"];
+                    var fromId = msg["from"]["id"];
+                    var fromFname = msg["from"]["first_name"];
+                    var fromLname = msg["from"]["last_name"] ?? "";
                     var fromFullName = `${fromFname} ${fromLname}`;
-                    var fromUsername = (msg.from.username) ? `@${msg.from.username}` : "";
-                    var fromLanguagecode = msg.from.language_code ?? "id";
-                    var mentionFromMarkdown = "[" + fromFullName + "](tg://user?id=" + user_id + ")";
-                    var key = { chat: { id: chat_id } };
+                    var fromUsername = (msg["from"]["username"]) ? `@${msg["from"]["username"]}` : "";
+                    var fromLanguagecode = msg["from"]["language_code"] ?? "id";
+                    var mentionFromMarkdown = `[${fromFullName}](tg://user?id=${user_id})`;
+                    var mentionFromHtml = `<a href='tg://user?id=${user_id}'>${fromFullName}</a>`;
+                    var key = { "chat": { "id": chat_id } };
 
                     try {
 
@@ -346,7 +357,7 @@ function doPost(e) {
                                 };
                                 return tg.request("sendMessage", option);
                             }
-                            
+
                             if (RegExp("^/start$", "i").exec(text)) {
                                 if (chat_type == "private") {
                                     var option = {
@@ -357,8 +368,8 @@ function doPost(e) {
                                             "inline_keyboard": [
                                                 [
                                                     {
-                                                        "text": (config_json.username_bot) ? "ADD Me To your group" : "Subscribe my channel",
-                                                        "url": "t.me/" + config_json.username_bot ?? "azkadev"
+                                                        "text": (config_json["username_bot"]) ? "ADD Me To your group" : "Subscribe my channel",
+                                                        "url": "t.me/" + config_json["username_bot"] ?? "azkadev"
                                                     }
                                                 ]
                                             ]
@@ -373,12 +384,12 @@ function doPost(e) {
                                     } catch (e) {
                                         var getValueApi = false;
                                     }
-                                    if (getValueApi && getValueApi.status_bool && getValueApi.result) {
-                                        var getValue = getValueApi.result.content;
+                                    if (typeof getValueApi == "object" && getValueApi["status_bool"] && typeof getValueApi["result"] == "object") {
+                                        var getValue = getValueApi["result"]["content"];
                                         var foundValue = false;
                                         for (var index = 0; index < getValue.length; index++) {
                                             var loop_data = getValue[index];
-                                            if (loop_data.chat && loop_data.chat.id == chat_id) {
+                                            if (typeof loop_data["chat"] == "object" && loop_data["chat"]["id"] == chat_id) {
                                                 foundValue = true;
                                             }
                                         }
@@ -386,7 +397,7 @@ function doPost(e) {
                                             database("pushValue", {
                                                 "key": "group",
                                                 "value": {
-                                                    "chat": msg.chat,
+                                                    "chat": msg["chat"],
                                                     "welcome": false,
                                                     "state": false
                                                 }
@@ -424,8 +435,8 @@ function doPost(e) {
                                             }
                                         };
                                         return tg.request("sendMessage", option);
-                                    }   else   {
-                                        return tg.request("sendMessage", {"chat_id": chat_id, "text": "Api Sedang dalam ganggguan atau token kamu salah"});
+                                    } else {
+                                        return tg.request("sendMessage", { "chat_id": chat_id, "text": "Api Sedang dalam ganggguan atau token kamu salah" });
                                     }
                                 }
                             }
@@ -433,7 +444,7 @@ function doPost(e) {
                         }
 
                         // check dlu ada member gknya
-                        if (msg.new_chat_members) {
+                        if (typeof msg["new_chat_members"] == "object") {
                             // baru ambil data value
                             try {
                                 var getValueApi = database("getValue", {
@@ -443,12 +454,12 @@ function doPost(e) {
                                 var getValueApi = false;
                             }
                             // check lagi apinya masih on gk
-                            if (getValueApi && getValueApi.status_bool && getValueApi.result) {
-                                var getValue = getValueApi.result.content;
+                            if (typeof getValueApi == "object" && getValueApi["status_bool"] && typeof getValueApi["result"] == "object") {
+                                var getValue = getValueApi["result"]["content"];
                                 // check lagi ada data group kamu gk di database
                                 for (var index = 0; index < getValue.length; index++) {
                                     var loop_data = getValue[index];
-                                    if (loop_data.chat && loop_data.chat.id == chat_id && loop_data.welcome) {
+                                    if (typeof loop_data["chat"] == "object" && loop_data["chat"]["id"] == chat_id && typeof loop_data["welcome"] == "object") {
                                         // tambahin try catch jika error ntr database di reset biar rusaknya gk nambah beban server api
                                         try {
                                             return sendMessage(tg, update, loop_data);
@@ -473,7 +484,7 @@ function doPost(e) {
                                         }
                                     }
                                 }
-                            }   else    {
+                            } else {
 
                                 var option = {
                                     "chat_id": chat_id,
@@ -492,18 +503,18 @@ function doPost(e) {
                         } catch (e) {
                             var getValueApi = false;
                         }
-                        if (getValueApi && getValueApi.status_bool && getValueApi.result) {
-                            var getValue = getValueApi.result.content;
+                        if (typeof getValueApi == "object" && getValueApi["status_bool"] && typeof getValueApi["result"] == "object") {
+                            var getValue = getValueApi["result"]["content"];
                             for (var index = 0; index < getValue.length; index++) {
                                 var loop_data = getValue[index];
-                                if (loop_data.state && loop_data.state.chat_id == chat_id && loop_data.state.user_id == user_id) {
-                                    if (loop_data.state.state) {
-                                        var getState = String(loop_data.state.state).toLocaleLowerCase();
+                                if (typeof loop_data["state"] == "object" && loop_data["state"]["chat_id"] == chat_id && loop_data["state"]["user_id"] == user_id) {
+                                    if (loop_data["state"]["state"]) {
+                                        var getState = String(loop_data["state"]["state"]).toLocaleLowerCase();
                                         switch (getState) {
                                             case "add_welcome":
-                                                if (loop_data.state.message_id) {
+                                                if (typeof loop_data["state"]["message_id"] == "number") {
                                                     try {
-                                                        tg.request("deleteMessage", { chat_id: chat_id, message_id: loop_data.state.message_id });
+                                                        tg.request("deleteMessage", { "chat_id": chat_id, "message_id": loop_data["state"]["message_id"] });
                                                     } catch (e) {
 
                                                     }
@@ -513,53 +524,53 @@ function doPost(e) {
                                                 var json = {};
                                                 if (text) {
                                                     supportMessage = true;
-                                                    json.type = "message";
-                                                    json.content = text;
+                                                    json["type"] = "message";
+                                                    json["content"] = text;
                                                 }
-                                                if (msg.photo) {
+                                                if (typeof msg["photo"] == "object") {
                                                     supportMessage = true;
-                                                    json.type = "photo";
-                                                    json.content = caption;
-                                                    json.file_id = msg.photo[msg.photo.length - 1].file_id;
+                                                    json["type"] = "photo";
+                                                    json["content"] = caption;
+                                                    json["file_id"] = msg["photo"][msg["photo"].length - 1]["file_id"];
                                                 }
-                                                if (msg.audio) {
+                                                if (typeof msg["audio"] == "object") {
                                                     supportMessage = true;
                                                     var type = "audio";
-                                                    json.type = type;
-                                                    json.file_id = msg[type].file_id;
+                                                    json["type"] = type;
+                                                    json["file_id"] = msg[type]["file_id"];
                                                 }
-                                                if (msg.document) {
+                                                if (typeof msg["document"] == "object") {
                                                     supportMessage = true;
                                                     var type = "document";
-                                                    json.type = type;
-                                                    json.file_id = msg[type].file_id;
+                                                    json["type"] = type;
+                                                    json["file_id"] = msg[type]["file_id"];
                                                 }
                                                 if (msg.video) {
                                                     supportMessage = true;
                                                     var type = "video";
-                                                    json.type = type;
-                                                    json.file_id = msg[type].file_id;
+                                                    json["type"] = type;
+                                                    json["file_id"] = msg[type]["file_id"];
                                                 }
-                                                if (msg.voice) {
+                                                if (typeof msg["voice"] == "object") {
                                                     supportMessage = true;
                                                     var type = "voice";
-                                                    json.type = type;
-                                                    json.file_id = msg[type].file_id;
+                                                    json["type"] = type;
+                                                    json["file_id"] = msg[type]["file_id"];
                                                 }
-                                                if (msg.animation) {
+                                                if (typeof msg["animation"] == "object") {
                                                     supportMessage = true;
                                                     var type = "animation";
-                                                    json.type = type;
-                                                    json.file_id = msg[type].file_id;
+                                                    json["type"] = type;
+                                                    json["file_id"] = msg[type]["file_id"];
                                                 }
-                                                if (msg.video_note) {
+                                                if (typeof msg["video_note"] == "object") {
                                                     supportMessage = true;
                                                     var type = "video_note";
-                                                    json.type = type;
-                                                    json.file_id = msg[type].file_id;
+                                                    json["type"] = type;
+                                                    json["file_id"] = msg[type]["file_id"];
                                                 }
                                                 if (supportMessage) {
-                                                    if (json) {
+                                                    if (typeof json == "object") {
                                                         database("updateValue", {
                                                             "key": "group",
                                                             "searchdata": {
@@ -595,9 +606,9 @@ function doPost(e) {
                                                     return tg.request("sendMessage", option);
                                                 }
                                             case "add_keyboard":
-                                                if (loop_data.state.message_id) {
+                                                if (typeof loop_data["state"]["message_id"] == "number") {
                                                     try {
-                                                        tg.request("deleteMessage", { chat_id: chat_id, message_id: loop_data.state.message_id });
+                                                        tg.request("deleteMessage", { "chat_id": chat_id, "message_id": loop_data["state"]["message_id"] });
                                                     } catch (e) {
 
                                                     }
@@ -608,8 +619,8 @@ function doPost(e) {
                                                         "text": text
                                                     };
                                                     var keyboard = apis("telegram", param);
-                                                    if (keyboard && keyboard.status_bool && keyboard.result && keyboard.result.reply_markup) {
-                                                        var keyboards = keyboard.result.reply_markup;
+                                                    if (typeof keyboard == "object" && keyboard["status_bool"] && typeof keyboard.result == "object" && typeof keyboard["result"]["reply_markup"] == "object") {
+                                                        var keyboards = keyboard["result"]["reply_markup"];
                                                         database("updateValue", {
                                                             "key": "group",
                                                             "searchdata": {
@@ -700,53 +711,57 @@ function doPost(e) {
 
 // di buat function agar bisa di kembangkan lebih mudah dan agar bisa di gunakan di mana saja bukan welcome doang tapi tinggal kalian atur sendiri kali gk ngerti ya sudahlah itu urusan kalian
 function sendMessage(tg, update, getData) {
-    if (update && getData) {
-        if (update.message) {
-            var msg = update.message;
-            var msgr = msg.reply_to_message ?? false;
-            var user_id = msg.from.id;
-            var chat_id = msg.chat.id;
-            var chat_type = String(msg.chat.type).replace(RegExp("super", "i"), "");
-            var chat_title = msg.chat.title ?? "";
-            var chat_username = (msg.chat.username) ? `@${msg.chat.username}` : "";
-            var msg_id = msg.message_id;
-            var text = msg.text ?? "";
-            var caption = msg.caption ?? "";
-            var fromId = msg.from.id;
-            var fromFname = msg.from.first_name;
-            var fromLname = msg.from.last_name ?? "";
+    if (typeof update == "object" && typeof getData == "object") {
+        if (typeof update["message"] == "object") {
+            var msg = update["message"];
+            var messages = msg["text"] ?? msg["caption"] ?? "";
+            var text = msg["text"] ?? "";
+            var caption = msg["caption"] ?? "";
+            var is_outgoing = msg["outgoing"] ?? false;
+            var msgr = (typeof msg["reply_to_message"] == "object") ? msg["reply_to_message"] : false;
+            var user_id = msg["from"]["id"];
+            var chat_id = msg["chat"]["id"];
+            var chat_type = String(msg["chat"]["type"]).replace(RegExp("super", "i"), "");
+            var chat_title = msg["chat"]["title"] ?? "";
+            var chat_username = (msg["chat"]["username"]) ? `@${msg["chat"]["username"]}` : "";
+            var msg_id = msg["message_id"];
+            var fromId = msg["from"]["id"];
+            var fromFname = msg["from"]["first_name"];
+            var fromLname = msg["from"]["last_name"] ?? "";
             var fromFullName = `${fromFname} ${fromLname}`;
-            var fromUsername = (msg.from.username) ? `@${msg.from.username}` : "";
-            var fromLanguagecode = msg.from.language_code ?? "id";
-            var mentionFromMarkdown = "[" + fromFullName + "](tg://user?id=" + user_id + ")";
-            var key = { chat: { id: chat_id } };
+            var fromUsername = (msg["from"]["username"]) ? `@${msg["from"]["username"]}` : "";
+            var fromLanguagecode = msg["from"]["language_code"] ?? "id";
+            var mentionFromMarkdown = `[${fromFullName}](tg://user?id=${user_id})`;
+            var mentionFromHtml = `<a href='tg://user?id=${user_id}'>${fromFullName}</a>`;
+            var key = { "chat": { "id": chat_id } };
+
             // cehck type welcome jika gk ada langsung return false;
-            if (getData.welcome.type) {
+            if (getData["welcome"]["type"]) {
                 var message = "";
                 // check caption ada gknya
-                if (getData.welcome.content) {
+                if (getData["welcome"]["content"]) {
                     // di replace dlu agar text {username} dll auto ganti ke nama member
-                    message += String(getData.welcome.content).replace(/({name})/ig, fromFname).replace(/({username})/ig, fromUsername).replace(/({chat_title})/ig, chat_title);
+                    message += String(getData["welcome"]["content"]).replace(/({name})/ig, fromFname).replace(/({username})/ig, fromUsername).replace(/({chat_title})/ig, chat_title);
                 }
                 // check type support jangan asal naruh ntr anu
-                if (RegExp("^(message|photo|video|audio|document|voice|videonote|animation)$", "i").exec(getData.welcome.type)) {
+                if (RegExp("^(message|photo|video|audio|document|voice|videonote|animation)$", "i").exec(getData["welcome"]["type"])) {
                     var option = {
                         "chat_id": chat_id,
                         "allow_sending_without_reply": true,
                         "reply_to_message_id": msg_id,
                         "parse_mode": "html"
                     };
-                    if (RegExp("^message$", "i").exec(getData.welcome.type)) {
+                    if (RegExp("^message$", "i").exec(getData["welcome"]["type"])) {
                         option["text"] = message ?? "Hello new member";
                     } else {
-                        option[String(getData.welcome.type).toLocaleLowerCase()] = getData.welcome.file_id;
+                        option[String(getData["welcome"]["type"]).toLocaleLowerCase()] = getData["welcome"]["file_id"];
                         option["caption"] = message ?? "";
                     }
                     // check keyboard kalo ada tambahin key reply markup
-                    if (getData.keyboard) {
-                        option["reply_markup"] = getData.keyboard;
+                    if (typeof getData["keyboard"] == "object") {
+                        option["reply_markup"] = getData["keyboard"];
                     }
-                    return tg.request("send" + getData.welcome.type, option);
+                    return tg.request("send" + getData["welcome"]["type"], option);
                 } else {
                     return false;
                 }
