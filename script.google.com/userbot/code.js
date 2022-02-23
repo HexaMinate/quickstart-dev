@@ -193,7 +193,7 @@ function doPost(e) {
                         }
                     }));
                     option["text"] = "Silahkan kirim pesan berupa text nomor ponsel kalian\ndi awali dari 628xxxxxxxx";
-                    return await tg.request("editMessageText", option);
+                    return tg.request("editMessageText", option);
                 }
 
 
