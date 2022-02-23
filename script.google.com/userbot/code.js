@@ -106,10 +106,16 @@ var db = new Minidb();
 
 var token_bot = "";
 var token_user = "";
-var urlApi = "";
+var urlApi = "https://script.google.com/macros/s/AKfycbwruY_9UcAkKTt__rATt1OzZX5fpc1bvQXj7UIV0jSYTxyzLf1R/exec?token=";
 
 var tg = new Telegram(db.getValue("token_bot"));
-var tg_user = new Telegram(db.getValue("token_user"));
+var tg_user = new Telegram(db.getValue("token_user"), true);
+
+function getWebhook() {
+    var tg = new Telegram(token_bot);
+    var data = tg.request("getWebhookInfo");
+    console.log(data);
+}
 
 function setWebhook() {
     var tg = new Telegram(token_bot);
@@ -130,7 +136,6 @@ function setWebhook() {
 function doGet() {
     return ContentService.createTextOutput("hello");
 }
-
 function doPost(e) {
     if (e["postData"]["type"] == "application/json" && e["parameters"] && e["parameters"]["token"] && e["parameters"]["token"].length > 0) {
         var update = false;
@@ -165,19 +170,9 @@ function doPost(e) {
                 var chat_username = (cbm["chat"]["username"]) ? `@${cbm["chat"]["username"]}` : "";
                 var msg_id = cbm["message_id"];
                 var text = cb["data"];
-                var fromId = cb["from"]["id"];
-                var fromFname = cb["from"]["first_name"];
-                var fromLname = cb["from"]["last_name"] ?? "";
-                var fromFullName = `${fromFname} ${fromLname}`;
-                var fromUsername = (cb["from"]["username"]) ? `@${cb["from"]["username"]}` : "";
-                var fromLanguagecode = cb["from"]["language_code"] ?? "id";
-                var mentionFromMarkdown = `[${fromFullName}](tg://user?id=${user_id})`;
-                var mentionFromHtml = `<a href='tg://user?id=${user_id}'>${fromFullName}</a>`;
                 var sub_data = text.replace(/(.*:|=.*)/ig, "");
                 var sub_id = text.replace(/(.*=|\-.*)/ig, "");
                 var sub_sub_data = text.replace(/(.*\-)/ig, "");
-                var key = { "chat": { "id": chat_id } };
-                var key_bot = { "chat": { "id": id_bot } };
 
                 if (text == "login") {
 
@@ -211,16 +206,6 @@ function doPost(e) {
                 var chat_title = msg["chat"]["title"] ?? "";
                 var chat_username = (msg["chat"]["username"]) ? `@${msg["chat"]["username"]}` : "";
                 var msg_id = msg["message_id"];
-                var fromId = msg["from"]["id"];
-                var fromFname = msg["from"]["first_name"];
-                var fromLname = msg["from"]["last_name"] ?? "";
-                var fromFullName = `${fromFname} ${fromLname}`;
-                var fromUsername = (msg["from"]["username"]) ? `@${msg["from"]["username"]}` : "";
-                var fromLanguagecode = msg["from"]["language_code"] ?? "id";
-                var mentionFromMarkdown = `[${fromFullName}](tg://user?id=${user_id})`;
-                var mentionFromHtml = `<a href='tg://user?id=${user_id}'>${fromFullName}</a>`;
-                var key = { "chat": { "id": chat_id } };
-                var key_bot = { "chat": { "id": id_bot } };
 
                 if (text) {
 
@@ -259,7 +244,7 @@ function doPost(e) {
                                     "text": "Tolong kirim pesan dalam bentuk teks\nexample\n628xxxxxxx",
                                 });
                             }
-                            if (RegExp("^[0-9]+$", "i").exec(text)) {
+                            if (!RegExp("^[0-9]+$", "i").exec(text)) {
                                 return tg.request("sendMessage", {
                                     "chat_id": chat_id,
                                     "text": "Tolong kirim pesan dalam bentuk teks\nexample\n628xxxxxxx",
@@ -298,7 +283,7 @@ function doPost(e) {
                                     "text": "Tolong kirim pesan dalam bentuk teks nomor min panjang 5",
                                 });
                             }
-                            if (RegExp("^[0-9]+$", "i").exec(text)) {
+                            if (!RegExp("^[0-9]+$", "i").exec(text)) {
                                 return tg.request("sendMessage", {
                                     "chat_id": chat_id,
                                     "text": "Tolong kirim pesan dalam bentuk teks nomor\nexample\n12345",
@@ -306,7 +291,7 @@ function doPost(e) {
                             }
                             try {
                                 var authCode = tg_user.request("authCode", {
-                                    "code": text
+                                    "code": Number(text)
                                 });
 
                                 if (authCode["result"]["authorization_state"] == "ready") {
